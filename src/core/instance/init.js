@@ -29,12 +29,14 @@ export function initMixin (Vue: Class<Component>) {
     // a flag to avoid this being observed
     vm._isVue = true
     // merge options
+    // 合并选项
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // 将用户的options和Vue本身的options进行合并
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -49,14 +51,18 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
-    initLifecycle(vm)
-    initEvents(vm)
-    initRender(vm)
-    callHook(vm, 'beforeCreate')
-    initInjections(vm) // resolve injections before data/props
-    initState(vm)
-    initProvide(vm) // resolve provide after data/props
+
+    // 核心初始化逻辑
+    initLifecycle(vm) // 实例属性的初始化 $parent,$root...
+    initEvents(vm)    // 处理自定义组件的自定义事件
+    initRender(vm)    // $slots $scopeSlots $_c $createElement声明
+    callHook(vm, 'beforeCreate')  // 调用生命周期钩子
+    // 在beforeCreate之前组件中是没有数据的
+    initInjections(vm) // resolve injections before data/props  从祖辈传过来的数据  provide/inject 处理
+    initState(vm)     // 数据的响应式处理  data/props/methods/computed/watch
+    initProvide(vm) // resolve provide after data/props   数据传给子代
     callHook(vm, 'created')
+    // 所以数据的处理写在created里面
 
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -64,7 +70,7 @@ export function initMixin (Vue: Class<Component>) {
       mark(endTag)
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
-
+    // 如果设置了$el，则自动挂载
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }

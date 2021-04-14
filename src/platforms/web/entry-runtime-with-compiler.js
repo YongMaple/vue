@@ -29,8 +29,10 @@ Vue.prototype.$mount = function (
     return this
   }
 
+  // 根组件选项
   const options = this.$options
   // resolve template/el and convert to render function
+  // 如果有render，直接就挂载了
   if (!options.render) {
     let template = options.template
     if (template) {
@@ -53,15 +55,15 @@ Vue.prototype.$mount = function (
         }
         return this
       }
-    } else if (el) {
+    } else if (el) {  // 如果没设置template则使用el查询到元素作为模板
       template = getOuterHTML(el)
     }
-    if (template) {
+    if (template) { // 最终转换template为render
       /* istanbul ignore if */
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
-
+      // 编译获得渲染函数
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,

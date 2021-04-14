@@ -3505,9 +3505,12 @@
     // so that we get proper render context inside it.
     // args order: tag, data, children, normalizationType, alwaysNormalize
     // internal version is used by render functions compiled from templates
+    // 给编译器生成的渲染函数去使用
     vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
     // normalization is always applied for the public version, used in
     // user-written render functions.
+    // render(h)  h就是$createElement
+    // 给用户生成的渲染函数去使用
     vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
     // $attrs & $listeners are exposed for easier HOC creation.
@@ -3775,6 +3778,9 @@
     vm._events = Object.create(null);
     vm._hasHookEvent = false;
     // init parent attached events
+    // <Child @my-click="onClick"></Child>  回调函数在父组件中声明的，所以用_parentListeners
+    // child.$emit('my-click')
+    // child.$on('my-click', listeners) 事件的监听和派发都是组件本身
     var listeners = vm.$options._parentListeners;
     if (listeners) {
       updateComponentListeners(vm, listeners);
@@ -4987,12 +4993,14 @@
       // a flag to avoid this being observed
       vm._isVue = true;
       // merge options
+      // 合并选项
       if (options && options._isComponent) {
         // optimize internal component instantiation
         // since dynamic options merging is pretty slow, and none of the
         // internal component options needs special treatment.
         initInternalComponent(vm, options);
       } else {
+        // 将用户的options和Vue本身的options进行合并
         vm.$options = mergeOptions(
           resolveConstructorOptions(vm.constructor),
           options || {},
@@ -5005,14 +5013,18 @@
       }
       // expose real self
       vm._self = vm;
-      initLifecycle(vm);
-      initEvents(vm);
-      initRender(vm);
-      callHook(vm, 'beforeCreate');
-      initInjections(vm); // resolve injections before data/props
-      initState(vm);
-      initProvide(vm); // resolve provide after data/props
+
+      // 核心初始化逻辑
+      initLifecycle(vm); // 实例属性的初始化 $parent,$root...
+      initEvents(vm);    // 处理自定义组件的自定义事件
+      initRender(vm);    // $slots $scopeSlots $_c $createElement声明
+      callHook(vm, 'beforeCreate');  // 调用生命周期钩子
+      // 在beforeCreate之前组件中是没有数据的
+      initInjections(vm); // resolve injections before data/props  从祖辈传过来的数据  provide/inject 处理
+      initState(vm);     // 数据的响应式处理  data/props/methods/computed/watch
+      initProvide(vm); // resolve provide after data/props   数据传给子代
       callHook(vm, 'created');
+      // 所以数据的处理写在created里面
 
       /* istanbul ignore if */
       if (config.performance && mark) {
@@ -5020,7 +5032,7 @@
         mark(endTag);
         measure(("vue " + (vm._name) + " init"), startTag, endTag);
       }
-
+      // 如果设置了$el，则自动挂载
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
       }
@@ -5083,6 +5095,7 @@
     return modified
   }
 
+  // 声明Vue的构造函数
   function Vue (options) {
     if (!(this instanceof Vue)
     ) {
@@ -5091,6 +5104,7 @@
     this._init(options);
   }
 
+  // 声明Vue各种实例方法
   initMixin(Vue);
   stateMixin(Vue);
   eventsMixin(Vue);
@@ -5438,6 +5452,8 @@
     initAssetRegisters(Vue);
   }
 
+  // 初始化全局API
+  // Vue.use directive components mixin 等
   initGlobalAPI(Vue);
 
   Object.defineProperty(Vue.prototype, '$isServer', {
@@ -9046,14 +9062,18 @@
   extend(Vue.options.components, platformComponents);
 
   // install platform patch function
+  // 安装平台特有的补丁函数，未来用于组件更新
   Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
   // public mount method
+  // 实现了$mount
   Vue.prototype.$mount = function (
     el,
     hydrating
   ) {
     el = el && inBrowser ? query(el) : undefined;
+    // 挂载组件：把当前组件(this)挂载到el上
+    // 流程： mountComponent 执行this的render， 得到vnode， _update(vnode)转换成真实dom， _update内部调用的是__patch__
     return mountComponent(this, el, hydrating)
   };
 
@@ -11907,8 +11927,10 @@
       return this
     }
 
+    // 根组件选项
     var options = this.$options;
     // resolve template/el and convert to render function
+    // 如果有render，直接就挂载了
     if (!options.render) {
       var template = options.template;
       if (template) {
@@ -11931,15 +11953,15 @@
           }
           return this
         }
-      } else if (el) {
+      } else if (el) {  // 如果没设置template则使用el查询到元素作为模板
         template = getOuterHTML(el);
       }
-      if (template) {
+      if (template) { // 最终转换template为render
         /* istanbul ignore if */
         if (config.performance && mark) {
           mark('compile');
         }
-
+        // 编译获得渲染函数
         var ref = compileToFunctions(template, {
           outputSourceRange: "development" !== 'production',
           shouldDecodeNewlines: shouldDecodeNewlines,

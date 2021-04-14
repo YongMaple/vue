@@ -13,6 +13,9 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
+  // <Child @my-click="onClick"></Child>  回调函数在父组件中声明的，所以用_parentListeners
+  // child.$emit('my-click')
+  // child.$on('my-click', listeners) 事件的监听和派发都是组件本身
   const listeners = vm.$options._parentListeners
   if (listeners) {
     updateComponentListeners(vm, listeners)
