@@ -728,6 +728,7 @@
 
   Dep.prototype.depend = function depend () {
     if (Dep.target) {
+      // watcher内部建立关系
       Dep.target.addDep(this);
     }
   };
@@ -858,6 +859,7 @@
    */
 
   var arrayProto = Array.prototype;
+  // 复制一份，防止影响其他的数组
   var arrayMethods = Object.create(arrayProto);
 
   var methodsToPatch = [
@@ -875,13 +877,20 @@
    */
   methodsToPatch.forEach(function (method) {
     // cache original method
+    // 保存原始方法
     var original = arrayProto[method];
+    // def内部就是Object.defineProperty，一个工具方法
+    // 给数组原型的副本重新定义行为
     def(arrayMethods, method, function mutator () {
       var args = [], len = arguments.length;
       while ( len-- ) args[ len ] = arguments[ len ];
 
+      // 默认行为
       var result = original.apply(this, args);
+      // 执行默认行为之外，做变更通知的操作
+      // this是一个响应式对象，里面一定有__ob__属性，__ob__就是observer实例
       var ob = this.__ob__;
+      // 有三种情况可能有成员加入
       var inserted;
       switch (method) {
         case 'push':
@@ -892,8 +901,10 @@
           inserted = args.slice(2);
           break
       }
+      // 对新的成员进行响应式处理
       if (inserted) { ob.observeArray(inserted); }
       // notify change
+      // 通知变更(在defineReactive内depend建立的关系)
       ob.dep.notify();
       return result
     });
@@ -921,13 +932,19 @@
    */
   var Observer = function Observer (value) {
     this.value = value;
+    // 此处为何创建一个Dep实例？
+    // 响应式对象动态新增或删除属性或数组有成员的新增或删除，做变更通知
+    // 例：this.$set(this.obj, 'bar', 'bar')
     this.dep = new Dep();
     this.vmCount = 0;
     def(value, '__ob__', this);
+    // 根据Object或者Array做不同的操作
     if (Array.isArray(value)) {
+      // 判断是否有原型
       if (hasProto) {
         protoAugment(value, arrayMethods);
       } else {
+        // IE等老版本浏览器
         copyAugment(value, arrayMethods, arrayKeys);
       }
       this.observeArray(value);
@@ -991,6 +1008,7 @@
       return
     }
     var ob;
+    // 已经拥有__ob__属性：已经做过响应式处理，不再做了，直接把__ob__return出去，防止重复工作
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
       ob = value.__ob__;
     } else if (
@@ -1018,6 +1036,7 @@
     customSetter,
     shallow
   ) {
+    // 和key 一一对应
     var dep = new Dep();
 
     var property = Object.getOwnPropertyDescriptor(obj, key);
@@ -1039,8 +1058,11 @@
       get: function reactiveGetter () {
         var value = getter ? getter.call(obj) : val;
         if (Dep.target) {
+          // 依赖收集
           dep.depend();
+          // 如果childOb存在
           if (childOb) {
+            // 子Ob内部的dep要和当前组件的watcher建立依赖关系
             childOb.dep.depend();
             if (Array.isArray(value)) {
               dependArray(value);
@@ -4517,9 +4539,11 @@
   Watcher.prototype.addDep = function addDep (dep) {
     var id = dep.id;
     if (!this.newDepIds.has(id)) {
+      // watcher要和dep建立关系
       this.newDepIds.add(id);
       this.newDeps.push(dep);
       if (!this.depIds.has(id)) {
+        // dep和watcher建立关系
         dep.addSub(this);
       }
     }
@@ -4731,6 +4755,7 @@
     var props = vm.$options.props;
     var methods = vm.$options.methods;
     var i = keys.length;
+    // 判断重名
     while (i--) {
       var key = keys[i];
       {
@@ -4752,6 +4777,7 @@
       }
     }
     // observe data
+    // 递归遍历data，做响应式处理
     observe(data, true /* asRootData */);
   }
 

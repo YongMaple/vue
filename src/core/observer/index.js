@@ -41,13 +41,19 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
+    // 此处为何创建一个Dep实例？
+    // 响应式对象动态新增或删除属性或数组有成员的新增或删除，做变更通知
+    // 例：this.$set(this.obj, 'bar', 'bar')
     this.dep = new Dep()
     this.vmCount = 0
     def(value, '__ob__', this)
+    // 根据Object或者Array做不同的操作
     if (Array.isArray(value)) {
+      // 判断是否有原型
       if (hasProto) {
         protoAugment(value, arrayMethods)
       } else {
+        // IE等老版本浏览器
         copyAugment(value, arrayMethods, arrayKeys)
       }
       this.observeArray(value)
@@ -112,6 +118,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     return
   }
   let ob: Observer | void
+  // 已经拥有__ob__属性：已经做过响应式处理，不再做了，直接把__ob__return出去，防止重复工作
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -139,6 +146,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 和key 一一对应
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -160,8 +168,11 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
+        // 依赖收集
         dep.depend()
+        // 如果childOb存在
         if (childOb) {
+          // 子Ob内部的dep要和当前组件的watcher建立依赖关系
           childOb.dep.depend()
           if (Array.isArray(value)) {
             dependArray(value)
