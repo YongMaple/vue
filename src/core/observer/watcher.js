@@ -42,6 +42,8 @@ export default class Watcher {
   getter: Function;
   value: any;
 
+  // 在new Watcher的时候需要传递组件实例(this)，组件更新函数(componentUpdate)
+  // new Watcher(this, componentUpdate)
   constructor (
     vm: Component,
     expOrFn: string | Function,
@@ -76,7 +78,9 @@ export default class Watcher {
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // 如果expOrFn是函数就直接赋值给getter
     if (typeof expOrFn === 'function') {
+      // 如果expOrFn是函数，则他就是组件更新函数
       this.getter = expOrFn
     } else {
       this.getter = parsePath(expOrFn)
@@ -103,6 +107,7 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      // 其实执行的是getter，也就是组件更新函数
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -166,10 +171,13 @@ export default class Watcher {
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
+      // 计算属性
       this.dirty = true
     } else if (this.sync) {
+      // 设置同步，会立即执行更新
       this.run()
     } else {
+      // watcher入队
       queueWatcher(this)
     }
   }
@@ -180,7 +188,11 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      // get()是谁
+      // 如果watcher是一个render watcher,，那么get()就是组件更新函数
+      // 如果watcher是user watcher，那么get()是计算当前选项最新值的函数
       const value = this.get()
+      // 下面只有用 watch/$watch 才会进行
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
@@ -194,6 +206,7 @@ export default class Watcher {
         this.value = value
         if (this.user) {
           try {
+            // 用户定义的回调函数
             this.cb.call(this.vm, value, oldValue)
           } catch (e) {
             handleError(e, this.vm, `callback for watcher "${this.expression}"`)

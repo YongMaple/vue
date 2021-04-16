@@ -7,9 +7,11 @@ import { isIE, isIOS, isNative } from './env'
 
 export let isUsingMicroTask = false
 
+// 存放异步任务的数组（不是微任务队列）
 const callbacks = []
 let pending = false
 
+// 执行callbacks中的所有任务
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
@@ -40,7 +42,9 @@ let timerFunc
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  // 如果当前平台支持Promise，就生成一个Promise实例
   const p = Promise.resolve()
+  // timerFunc会异步的方式执行flushCallbacks
   timerFunc = () => {
     p.then(flushCallbacks)
     // In problematic UIWebViews, Promise.then doesn't completely break, but
@@ -83,9 +87,10 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     setTimeout(flushCallbacks, 0)
   }
 }
-
+// 这就是平时用的$nextTick
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
+  // cb封装之后放入callbacks，但并不会立即执行
   callbacks.push(() => {
     if (cb) {
       try {
@@ -99,6 +104,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
   })
   if (!pending) {
     pending = true
+    // 异步执行
     timerFunc()
   }
   // $flow-disable-line
