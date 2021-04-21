@@ -34,6 +34,7 @@ import {
 
 // inline hooks to be invoked on component VNodes during patch
 const componentVNodeHooks = {
+  // 初始化
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
       vnode.componentInstance &&
@@ -41,17 +42,20 @@ const componentVNodeHooks = {
       vnode.data.keepAlive
     ) {
       // kept-alive components, treat as a patch
+      // 缓存：直接复用
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
+      // 创建组件实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
       )
+      // 执行挂载
       child.$mount(hydrating ? vnode.elm : undefined, hydrating)
     }
   },
-
+  // 预打包
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     const options = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
@@ -63,7 +67,7 @@ const componentVNodeHooks = {
       options.children // new children
     )
   },
-
+  // 插入
   insert (vnode: MountedComponentVNode) {
     const { context, componentInstance } = vnode
     if (!componentInstance._isMounted) {
@@ -83,7 +87,7 @@ const componentVNodeHooks = {
       }
     }
   },
-
+  // 销毁
   destroy (vnode: MountedComponentVNode) {
     const { componentInstance } = vnode
     if (!componentInstance._isDestroyed) {
@@ -96,8 +100,9 @@ const componentVNodeHooks = {
   }
 }
 
-const hooksToMerge = Object.keys(componentVNodeHooks)
+const hooksToMerge = Object.keys(componentVNodeHooks) // 虚拟dom钩子
 
+// 传入组件构造函数和数据等，返回虚拟dom
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -109,9 +114,11 @@ export function createComponent (
     return
   }
 
+  // 构造器
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  // 标准化处理，确定Ctor是一个构造函数
   if (isObject(Ctor)) {
     Ctor = baseCtor.extend(Ctor)
   }
@@ -146,30 +153,53 @@ export function createComponent (
 
   data = data || {}
 
+  // 处理各种组件数据：属性、事件、指令等
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
+  // v-modle的处理
+  // 处理model选项
+  // 下面是官网上copy过来的例子https://cn.vuejs.org/v2/guide/components-custom-events.html
+  // Vue.component('base-checkbox', {
+  //   model: {
+  //     prop: 'checked',
+  //     event: 'change'
+  //   },
+  //   props: {
+  //     checked: Boolean
+  //   },
+  //   template: `
+  //     <input
+  //       type="checkbox"
+  //       v-bind:checked="checked"
+  //       v-on:change="$emit('change', $event.target.checked)"
+  //     >
+  //   `
+  // })
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
 
   // extract props
+  // 处理属性
   const propsData = extractPropsFromVNodeData(data, Ctor, tag)
 
   // functional component
+  // 函数式组件处理
   if (isTrue(Ctor.options.functional)) {
     return createFunctionalComponent(Ctor, propsData, data, context, children)
   }
 
   // extract listeners, since these needs to be treated as
   // child component listeners instead of DOM listeners
+  // 事件相关处理，区分自定义和原生
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
   data.on = data.nativeOn
-
+  // 抽象组件的处理
   if (isTrue(Ctor.options.abstract)) {
     // abstract components do not keep anything
     // other than props & listeners & slot
@@ -183,10 +213,13 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // 安装组件的管理钩子，只是安装（init,prepatch...），没有执行
   installComponentHooks(data)
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
+  // 根据组件名称，创建虚拟dom
+  // comp => vue-component-1-comp
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,
@@ -226,7 +259,8 @@ export function createComponentInstanceForVnode (
 }
 
 function installComponentHooks (data: VNodeData) {
-  const hooks = data.hook || (data.hook = {})
+  // 合并：用户传入的钩子和默认钩子
+  const hooks = data.hook || (data.hook = {}) // 组件的管理钩子（组件插入、挂载、卸载等过程）
   for (let i = 0; i < hooksToMerge.length; i++) {
     const key = hooksToMerge[i]
     const existing = hooks[key]
