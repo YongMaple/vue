@@ -39,6 +39,7 @@ function sameVnode (a, b) {
       (
         a.tag === b.tag &&
         a.isComment === b.isComment &&
+        // isDef => function isDef (v) { return v !== undefined && v !== null }
         isDef(a.data) === isDef(b.data) &&
         sameInputType(a, b)
       ) || (

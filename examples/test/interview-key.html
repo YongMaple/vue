@@ -1,0 +1,21 @@
+<html>
+<div id="demo">
+  <p v-for="item in list">{{item}}</p>
+</div>
+<script src="../../dist/vue.js"></script>
+<script>
+  const app = new Vue({
+    el: '#demo',
+    data() {
+      return {
+        list: ['a', 'b', 'c', 'd', 'e'],
+      }
+    },
+    mounted() {
+      setTimeout(() => {
+        this.list.splice(2, 0, 'f')
+      }, 2000);
+    }
+  })
+</script>
+</html>

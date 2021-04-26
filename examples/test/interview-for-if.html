@@ -1,0 +1,27 @@
+<html>
+<div id="demo">
+  <!-- <p v-if="isShow" v-for="item in list">{{item.name}}</p> -->
+  <template v-if="isShow">
+    <p v-for="item in list">{{item.name}}</p>
+  </template>
+</div>
+<script src="../../dist/vue.js"></script>
+<script>
+  const app = new Vue({
+    el: '#demo',
+    data() {
+      return {
+        list: [{
+            name: 'foo'
+          },
+          {
+            name: 'bar'
+          }
+        ],
+        isShow: true
+      }
+    }
+  })
+  console.log(app.$options.render)
+</script>
+</html>
